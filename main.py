@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import time
 from bs4 import BeautifulSoup
 import json
@@ -10,14 +11,18 @@ import boto3
 def lambda_handler(event, context) -> None:
     week_ago = (datetime.datetime.now() - datetime.timedelta(days=7)).date()
     # set up Chrome driver
+    print('Settting up chrome driver...')
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_service = Service('/opt/chromedriver')
+    chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--single-process')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options, service=chrome_service)
+    print('Chrome driver set up successfully!')
     # begin webscraping
+    print('Beginning webscraping...')
     page, data, end = 1, [], False
     while not end:
         driver.get(f'https://www.capitoltrades.com/trades?per_page=96&page={page}')
@@ -53,6 +58,8 @@ def lambda_handler(event, context) -> None:
             }
             data.append(record)
         page += 1
+    print('Webscrape complete!')
+    print('Writing data to S3...')
     fname = f'trades_{'_'.join([datetime.datetime.today().strftime('%d-%m-%Y'), week_ago.strftime('%d-%m-%Y')])}.json'
     s3 = boto3.client('s3')
     json_data = json.dumps(data)
