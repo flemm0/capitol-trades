@@ -58,7 +58,7 @@ def lambda_handler(event, context) -> None:
                 'owner': cols[5].text.strip(),
                 'type': cols[6].text.strip(),
                 'size': cols[7].text.strip(),
-                'price': cols[9].text.strip()
+                'price': cols[8].text.strip()
             }
             data.append(record)
         page += 1
