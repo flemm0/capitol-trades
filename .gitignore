@@ -30,3 +30,16 @@ pyvenv.cfg
 
 # testing
 data/*
+testing/
+
+# secrets
+*.env
+app/.streamlit
+
+
+# metabase
+metabase
+
+
+etc/
+share/
