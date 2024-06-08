@@ -1,0 +1,5 @@
+PyAthena==3.8.3
+PyAthena[Arrow]
+streamlit==1.35.0
+polars==0.20.29
+plotly==5.22.0
