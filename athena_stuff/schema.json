@@ -1,0 +1,77 @@
+[
+    {
+      "Name": "politician",
+      "Type": "varchar(55)",
+      "Comment": ""
+    },
+    {
+      "Name": "party",
+      "Type": "varchar(55)",
+      "Comment": ""
+    },
+    {
+      "Name": "chamber",
+      "Type": "varchar(55)",
+      "Comment": ""
+    },
+    {
+      "Name": "issuer_name",
+      "Type": "string",
+      "Comment": "Company"
+    },
+    {
+      "Name": "issuer_ticker",
+      "Type": "varchar(25)",
+      "Comment": ""
+    },
+    {
+      "Name": "published_date",
+      "Type": "date",
+      "Comment": "Date that the trade transaction was published"
+    },
+    {
+      "Name": "traded_date",
+      "Type": "date",
+      "Comment": "Date that the trade was made"
+    },
+    {
+      "Name": "filed_after",
+      "Type": "int",
+      "Comment": "Number of days between when trade was made and when it was filed"
+    },
+    {
+      "Name": "owner",
+      "Type": "varchar(55)",
+      "Comment": "Owner of the trade"
+    },
+    {
+      "Name": "type",
+      "Type": "varchar(55)",
+      "Comment": "Type of transaction"
+    },
+    {
+      "Name": "size",
+      "Type": "varchar(25)",
+      "Comment": "Trade volume (category)"
+    },
+    {
+      "Name": "price",
+      "Type": "float",
+      "Comment": ""
+    },
+    {
+      "Name": "politician_first_name",
+      "Type": "varchar(25)",
+      "Comment": ""
+    },
+    {
+      "Name": "politician_last_name",
+      "Type": "varchar(25)",
+      "Comment": ""
+    },
+    {
+      "Name": "state",
+      "Type": "varchar(5)",
+      "Comment": ""
+    }
+  ]
