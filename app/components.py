@@ -1,4 +1,5 @@
 import streamlit as st
+import polars as pl
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -33,16 +34,13 @@ def trades_by_state() -> go.Figure:
         locations=df.get_column('state'), # Spatial coordinates
         z = df.get_column('trade_count_scaled') if scale else df.get_column('total_trade_count'), # Data to be color-coded
         locationmode = 'USA-states', # set of locations match entries in `locations`
-        colorscale = 'Reds',
+        colorscale = 'GnBu',
         marker_line_color='grey',
         autocolorscale=False,
-        colorbar_title = "Trade Transactions",
+        colorbar_title = f"Trade Transactions{'<br><sup>(per representative)</sup>' if scale else ''}",
     ))
-    title_text = 'Politician Trade Transactions by State of Representation'
-    if scale:
-        title_text = f'{title_text}<br><sup>(Scaled by Number of Representatives)</sup>'
     fig.update_layout(
-        title_text = title_text,
+        title_text = f'Politician Trade Transactions by State of Representation{'<br><sup>(Scaled by Number of Representatives)</sup>' if scale else  ''}',
         geo = dict(
             scope='usa',
             projection=go.layout.geo.Projection(type = 'albers usa'),
@@ -55,7 +53,7 @@ def trades_by_state() -> go.Figure:
     return fig
 
 
-def trades_by_chamber():
+def trades_by_chamber() -> go.Figure:
     query = """
     SELECT
         chamber,
@@ -74,7 +72,7 @@ def trades_by_chamber():
     return fig
 
 
-def trades_by_party():
+def trades_by_party() -> go.Figure:
     query = """
     SELECT
         party,
@@ -93,7 +91,7 @@ def trades_by_party():
     return fig
 
 
-def trades_by_chamber_and_party():
+def trades_by_chamber_and_party() -> go.Figure:
     chamber_query = """
     SELECT
         chamber,
@@ -125,7 +123,7 @@ def trades_by_chamber_and_party():
         2, 1)
     fig.update_traces(hole=.4, hoverinfo="label+percent+name")
     fig.update_layout(
-        title='Trades by Chamber (House or Senate) and Party',
+        title=f'Trades by Chamber (House or Senate) and Party{'<br><sup>(Scaled by Number of Members)</sup>' if scale else ''}',
         height=500,
         annotations=[dict(text='By Party', x=1, y=0, font_size=20, showarrow=False),
                  dict(text='By Chamber', x=-.1, y=1, font_size=20, showarrow=False)],
@@ -138,24 +136,132 @@ def trades_by_chamber_and_party():
     return fig
 
 
-def display_top_thirty_issuers():
+def buys_and_sells_by_week() -> go.Figure:
+    query = """
+    SELECT 
+        DATE_TRUNC('week', traded_date) AS trade_week_start,
+        type,
+        COUNT(*) AS "count"
+    FROM "capitol-trades"."trades_cleaned"
+    WHERE type IN ('buy', 'sell')
+    GROUP BY 1, 2
+    ORDER BY 1 DESC
+    """
+    df = query_athena(query)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df.filter(pl.col('type') == 'buy').get_column('trade_week_start'),
+        y=df.filter(pl.col('type') == 'buy').get_column('count'),
+        name='Buy Transactions'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df.filter(pl.col('type') == 'sell').get_column('trade_week_start'),
+        y=df.filter(pl.col('type') == 'sell').get_column('count'),
+        name='Sell Transactions',
+        line=dict(color='#36cf09')
+    ))
+    fig.update_layout(title='Weekly Buy and Sell Transactions Trendline',
+                    xaxis_title='Date',
+                    yaxis_title='Trade Transaction Count',
+                    height=500)
+    return fig
+
+
+def trades_by_owner() -> go.Figure:
+    query = """
+    SELECT 
+        owner, 
+        COUNT(*) AS "count"
+    FROM "capitol-trades"."trades_cleaned" 
+    GROUP BY 1
+    """
+    df = query_athena(query)
+    fig = go.Figure([go.Bar(
+        x=df.get_column('owner'), 
+        y=df.get_column('count')
+    )])
+    fig.update_layout(height=500, title='Trade Transaction Owner')
+    return fig
+
+
+def buy_and_sell_transactions_for_issuer() -> go.Figure:
+    tickers = list(query_athena("""
+    SELECT
+        DISTINCT
+        issuer_ticker AS ticker
+    FROM "capitol-trades"."trades_cleaned";
+    """).get_column('ticker').sort())
+    ticker = st.selectbox(
+        label='Select ticker to view trade activity for',
+        options=tickers,
+        index=tickers.index('AAPL:US')
+    )
+    query = f"""
+    SELECT
+        traded_date,
+        "type",
+        COUNT(*) AS "count"
+    FROM "capitol-trades"."trades_cleaned"
+    WHERE issuer_ticker = '{ticker}'
+    GROUP BY 1, 2
+    ORDER BY 1 DESC
+    """
+    df = query_athena(query)
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(
+        x=df.filter(pl.col('type') == 'buy').get_column('traded_date'),
+        y=df.filter(pl.col('type') == 'buy').get_column('count'),
+        name='Buy Transactions',
+        marker_color='#239e44'
+    ))
+    fig.add_trace(go.Histogram(
+        x=df.filter(pl.col('type') == 'sell').get_column('traded_date'),
+        y=df.filter(pl.col('type') == 'sell').get_column('count'),
+        name='Sell Transactions',
+        marker_color='#ed1818'
+    ))
+    fig.update_layout(title=f'Buy and Sell Transactions for {ticker}',
+                    xaxis_title='Date',
+                    yaxis_title='Trade Transaction Count',
+                    height=500)
+    return fig
+
+
+def top_twenty_issuers() -> go.Figure:
     query = """
     SELECT
         issuer_name,
         type,
-        COUNT(*) AS count
+        COUNT(*) AS "count"
     FROM "capitol-trades"."trades_cleaned"
     WHERE issuer_name IN (
-        SELECT issuer_name
+        SELECT
+            issuer_name
         FROM (
-            SELECT issuer_name, COUNT(*)
+            SELECT
+                issuer_name,
+                COUNT(*)
             FROM "capitol-trades"."trades_cleaned"
             GROUP BY 1
-            ORDER BY COUNT(*) DESC
-            LIMIT 30
+            ORDER BY 2 DESC
+            LIMIT 20
         )
     )
     GROUP BY 1, 2
+    ORDER BY 1
     """
     df = query_athena(query)
-    return df
+    fig = px.scatter(
+        data_frame=df,
+        x='count',
+        y='issuer_name',
+        color='type',
+        labels={
+            "count": "Total Recorded Trade Transactions",
+            "issuer_name": "Issuer"
+        },
+        color_discrete_sequence=px.colors.qualitative.G10
+    )
+    fig.update_traces(marker_size=10)
+    fig.update_layout(height=600, title='Trade Activity for Top 20 Issuers')
+    return fig
