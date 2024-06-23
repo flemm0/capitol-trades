@@ -43,3 +43,5 @@ metabase
 
 etc/
 share/
+
+test.py
