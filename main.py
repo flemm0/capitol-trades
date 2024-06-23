@@ -40,13 +40,16 @@ def lambda_handler(event, context) -> None:
                 published_date = datetime.datetime.today().date().strftime('%Y %d %b')
             elif 'Yesterday' in published_date:
                 published_date = (datetime.datetime.today() - datetime.timedelta(days=1)).date().strftime('%Y %d %b')
-            published_date_obj = datetime.datetime.strptime(published_date, '%Y %d %b').date()
+            try:
+                published_date_obj = datetime.datetime.strptime(published_date, '%Y %d %b').date()
+            except ValueError:
+                published_date_obj = datetime.datetime.strptime(published_date, '%d %b%Y').date()
             if published_date_obj <= week_ago:
                 end = True
                 break
             party, chamber, state = tuple([ele.text for ele in cols[0].find_all(class_='q-field')])
             record = {
-                'politician': cols[0].find(class_='q-fieldset politician-name').text,
+                'politician': cols[0].find(class_='q-fieldset politician-name text-[13px]').text,
                 'party': party,
                 'chamber': chamber,
                 'state': state,
