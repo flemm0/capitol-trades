@@ -71,7 +71,7 @@ def lambda_handler(event, context) -> None:
     print('Writing data to S3...')
     fname = f'trades_{'_'.join([datetime.datetime.today().strftime('%d-%m-%Y'), week_ago.strftime('%d-%m-%Y')])}.json'
     s3 = boto3.client('s3')
-    json_data = json.dumps(data)
+    json_data = '\n'.join(json.dumps(record) for record in data)
     s3.put_object(
         Bucket='capitol-trades-data-lake',
         Key=f'trades/{fname}',
