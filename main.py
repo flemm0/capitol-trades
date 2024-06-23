@@ -35,7 +35,7 @@ def lambda_handler(event, context) -> None:
         rows = soup.find('table', {'class': 'q-table trades-table'}).find('tbody').find_all('tr')
         for row in rows:
             cols = row.find_all('td')
-            published_date = cols[2].text.strip()
+            published_date, traded_date = cols[2].text.strip(), cols[3].text.strip()
             if 'Today' in published_date:
                 published_date = datetime.datetime.today().date().strftime('%Y %d %b')
             elif 'Yesterday' in published_date:
@@ -44,6 +44,8 @@ def lambda_handler(event, context) -> None:
                 published_date_obj = datetime.datetime.strptime(published_date, '%Y %d %b').date()
             except ValueError:
                 published_date_obj = datetime.datetime.strptime(published_date, '%d %b%Y').date()
+                published_date = datetime.datetime.strptime(published_date, '%d %b%Y').strftime('%Y %d %b')
+                traded_date = datetime.datetime.strptime(traded_date, '%d %b%Y').strftime('%Y %d %b')
             if published_date_obj <= week_ago:
                 end = True
                 break
